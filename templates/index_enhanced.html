@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GMRIT Results Scraper - Enhanced</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --danger-color: #e74c3c;
+            --warning-color: #f39c12;
+            --info-color: #17a2b8;
+            --light-bg: #ecf0f1;
+            --dark-bg: #34495e;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
+            max-width: 1400px;
+            overflow: hidden;
+        }
+
+        .header {
+            background: var(--primary-color);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 300;
+        }
+
+        .nav-tabs {
+            border-bottom: 2px solid var(--secondary-color);
+            margin-bottom: 20px;
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            color: var(--primary-color);
+            font-weight: 600;
+            padding: 12px 20px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tabs .nav-link.active {
+            background: var(--secondary-color);
+            color: white;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .nav-tabs .nav-link:hover {
+            background: var(--light-bg);
+            border-radius: 8px 8px 0 0;
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            height: 100%;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            background: var(--secondary-color);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            font-weight: 600;
+        }
+
+        .btn {
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--secondary-color);
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            border: none;
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            border: none;
+        }
+
+        .btn-warning {
+            background: var(--warning-color);
+            border: none;
+        }
+
+        .btn-info {
+            background: var(--info-color);
+            border: none;
+        }
+
+        .hall-ticket-item {
+            background: var(--light-bg);
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .hall-ticket-item:hover {
+            background: #d5dbdd;
+        }
+
+        .hall-ticket-code {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .file-item {
+            background: var(--light-bg);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .file-item:hover {
+            background: #d5dbdd;
+        }
+
+        .file-info {
+            flex-grow: 1;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 4px;
+        }
+
+        .file-meta {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .progress-container {
+            display: none;
+            margin: 20px 0;
+        }
+
+        .log-container {
+            background: var(--dark-bg);
+            color: #ecf0f1;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .log-entry {
+            margin: 2px 0;
+            padding: 2px 0;
+        }
+
+        .log-success {
+            color: #2ecc71;
+        }
+
+        .log-error {
+            color: #e74c3c;
+        }
+
+        .log-info {
+            color: #3498db;
+        }
+
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-idle {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .status-running {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .status-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--secondary-color);
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+
+        .concurrent-settings {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .file-preview {
+            max-height: 200px;
+            overflow-y: auto;
+            background: var(--light-bg);
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .pulsing {
+            animation: pulse 2s infinite;
+        }
+
+        .tab-content {
+            padding: 20px;
+        }
+
+        .performance-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, var(--secondary-color), #2980b9);
+            color: white;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .metric-label {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="header">
+            <h1><i class="fas fa-graduation-cap"></i> GMRIT Results Scraper - Enhanced</h1>
+            <p>High-performance web interface with concurrent processing and advanced file management</p>
+        </div>
+
+        <div class="container-fluid p-4">
+            <!-- Navigation Tabs -->
+            <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tickets-tab" data-bs-toggle="tab" data-bs-target="#tickets" type="button" role="tab">
+                        <i class="fas fa-ticket-alt"></i> Hall Tickets
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="scraping-tab" data-bs-toggle="tab" data-bs-target="#scraping" type="button" role="tab">
+                        <i class="fas fa-cogs"></i> Scraping
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="files-tab" data-bs-toggle="tab" data-bs-target="#files" type="button" role="tab">
+                        <i class="fas fa-folder"></i> Files
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content" id="mainTabContent">
+                <!-- Dashboard Tab -->
+                <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span><i class="fas fa-chart-line"></i> System Overview</span>
+                                    <span id="status-badge" class="status-badge status-idle">IDLE</span>
+                                </div>
+                                <div class="card-body">
+                                    <div class="stats-grid">
+                                        <div class="stat-card">
+                                            <div id="hall-tickets-count" class="stat-number">0</div>
+                                            <div class="stat-label">Hall Tickets</div>
+                                        </div>
+                                        <div class="stat-card">
+                                            <div id="html-files-count" class="stat-number">0</div>
+                                            <div class="stat-label">HTML Files</div>
+                                        </div>
+                                        <div class="stat-card">
+                                            <div id="pdf-files-count" class="stat-number">0</div>
+                                            <div class="stat-label">PDF Files</div>
+                                        </div>
+                                        <div class="stat-card">
+                                            <div id="excel-status" class="stat-number">-</div>
+                                            <div class="stat-label">Excel File</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Performance Metrics -->
+                                    <div class="performance-metrics" id="performance-metrics" style="display: none;">
+                                        <div class="metric-card">
+                                            <div id="elapsed-time" class="metric-value">0s</div>
+                                            <div class="metric-label">Elapsed Time</div>
+                                        </div>
+                                        <div class="metric-card">
+                                            <div id="processing-speed" class="metric-value">0/min</div>
+                                            <div class="metric-label">Processing Speed</div>
+                                        </div>
+                                        <div class="metric-card">
+                                            <div id="active-threads" class="metric-value">0</div>
+                                            <div class="metric-label">Active Threads</div>
+                                        </div>
+                                        <div class="metric-card">
+                                            <div id="success-rate" class="metric-value">0%</div>
+                                            <div class="metric-label">Success Rate</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hall Tickets Tab -->
+                <div class="tab-pane fade" id="tickets" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fas fa-plus"></i> Add Hall Tickets
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <label for="hall-tickets-input" class="form-label">Enter Hall Tickets</label>
+                                        <textarea class="form-control" id="hall-tickets-input" rows="4" 
+                                            placeholder="Enter hall ticket numbers (one per line or comma-separated)&#10;Example: 24341A0502, 24341A0503"></textarea>
+                                        <small class="form-text text-muted">Format: 24341A0502</small>
+                                    </div>
+                                    
+                                    <div class="d-grid gap-2 d-md-flex mb-3">
+                                        <button class="btn btn-primary" onclick="addHallTickets()">
+                                            <i class="fas fa-plus"></i> Add Tickets
+                                        </button>
+                                        <button class="btn btn-danger" onclick="clearAllTickets()">
+                                            <i class="fas fa-trash"></i> Clear All
+                                        </button>
+                                    </div>
+
+                                    <!-- Import/Export -->
+                                    <div class="concurrent-settings">
+                                        <h6><i class="fas fa-exchange-alt"></i> Import/Export</h6>
+                                        <div class="d-grid gap-2 d-md-flex">
+                                            <button class="btn btn-info" onclick="exportHallTickets()">
+                                                <i class="fas fa-download"></i> Export (.txt)
+                                            </button>
+                                            <button class="btn btn-info" onclick="document.getElementById('import-file').click()">
+                                                <i class="fas fa-upload"></i> Import (.txt)
+                                            </button>
+                                            <input type="file" id="import-file" style="display: none;" accept=".txt" onchange="importHallTickets(event)">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fas fa-list"></i> Saved Hall Tickets
+                                </div>
+                                <div class="card-body">
+                                    <div id="hall-tickets-list" style="max-height: 400px; overflow-y: auto;">
+                                        <p class="text-muted">No hall tickets saved yet.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scraping Tab -->
+                <div class="tab-pane fade" id="scraping" role="tabpanel">
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fas fa-rocket"></i> Scraping Control Panel
+                                </div>
+                                <div class="card-body">
+                                    <!-- Concurrent Settings -->
+                                    <div class="concurrent-settings">
+                                        <h6><i class="fas fa-cogs"></i> Performance Settings</h6>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-check">
+                                                    <input class="form-check-input" type="checkbox" id="concurrent-mode">
+                                                    <label class="form-check-label" for="concurrent-mode">
+                                                        Enable Concurrent Processing (Faster)
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="max-workers" class="form-label">Max Workers:</label>
+                                                <select class="form-select" id="max-workers">
+                                                    <option value="2">2 Workers</option>
+                                                    <option value="3" selected>3 Workers</option>
+                                                    <option value="4">4 Workers</option>
+                                                    <option value="5">5 Workers</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Control Buttons -->
+                                    <div class="row mb-4">
+                                        <div class="col-md-8">
+                                            <button id="scrape-btn" class="btn btn-success btn-lg me-2" onclick="startScraping()">
+                                                <i class="fas fa-play"></i> Start Scraping
+                                            </button>
+                                            <button id="stop-btn" class="btn btn-warning btn-lg me-2" onclick="stopScraping()" disabled>
+                                                <i class="fas fa-stop"></i> Stop
+                                            </button>
+                                            <button class="btn btn-primary btn-lg me-2" onclick="generateExcel()">
+                                                <i class="fas fa-file-excel"></i> Generate Excel
+                                            </button>
+                                            <button id="download-btn" class="btn btn-outline-primary btn-lg" onclick="downloadExcel()" disabled>
+                                                <i class="fas fa-download"></i> Download Excel
+                                            </button>
+                                        </div>
+                                        <div class="col-md-4 text-end">
+                                            <div id="scraping-info" class="mt-2">
+                                                <small class="text-muted">Ready to scrape</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Progress Bar -->
+                                    <div class="progress-container" id="progress-container">
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span id="progress-text">Starting...</span>
+                                            <span id="progress-percent">0%</span>
+                                        </div>
+                                        <div class="progress">
+                                            <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                                                 role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Logs -->
+                                    <div class="log-container" id="log-container" style="display: none;">
+                                        <div id="logs"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Files Tab -->
+                <div class="tab-pane fade" id="files" role="tabpanel">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fas fa-file-pdf"></i> PDF Files
+                                    <button class="btn btn-sm btn-danger float-end" onclick="clearFiles('pdf')">
+                                        <i class="fas fa-trash"></i> Clear All
+                                    </button>
+                                </div>
+                                <div class="card-body">
+                                    <div id="pdf-files-list" style="max-height: 300px; overflow-y: auto;">
+                                        <p class="text-muted">No PDF files found.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fas fa-file-excel"></i> Excel Files
+                                </div>
+                                <div class="card-body">
+                                    <div id="excel-files-list" style="max-height: 300px; overflow-y: auto;">
+                                        <p class="text-muted">No Excel file found.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <i class="fas fa-archive"></i> Bulk Operations
+                                </div>
+                                <div class="card-body">
+                                    <button class="btn btn-info btn-lg me-2" onclick="downloadAllFiles()">
+                                        <i class="fas fa-download"></i> Download All Files (ZIP)
+                                    </button>
+                                    <button class="btn btn-warning btn-lg" onclick="refreshFiles()">
+                                        <i class="fas fa-sync"></i> Refresh File List
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let statusInterval;
+        let currentTab = 'dashboard';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadHallTickets();
+            loadSummary();
+            loadFiles();
+            startStatusPolling();
+            
+            // Tab change handlers
+            document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
+                tab.addEventListener('shown.bs.tab', function (e) {
+                    currentTab = e.target.getAttribute('data-bs-target').replace('#', '');
+                    if (currentTab === 'files') {
+                        loadFiles();
+                    }
+                });
+            });
+        });
+
+        // Start polling for status updates
+        function startStatusPolling() {
+            statusInterval = setInterval(() => {
+                loadSummary();
+                if (currentTab === 'files') {
+                    loadFiles();
+                }
+            }, 2000);
+        }
+
+        // Load hall tickets
+        async function loadHallTickets() {
+            try {
+                const response = await fetch('/api/halltickets');
+                const data = await response.json();
+                
+                const listContainer = document.getElementById('hall-tickets-list');
+                
+                if (data.tickets && data.tickets.length > 0) {
+                    listContainer.innerHTML = data.tickets.map(ticket => `
+                        <div class="hall-ticket-item">
+                            <span class="hall-ticket-code">${ticket}</span>
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeTicket('${ticket}')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `).join('');
+                } else {
+                    listContainer.innerHTML = '<p class="text-muted">No hall tickets saved yet.</p>';
+                }
+            } catch (error) {
+                console.error('Error loading hall tickets:', error);
+            }
+        }
+
+        // Add hall tickets
+        async function addHallTickets() {
+            const input = document.getElementById('hall-tickets-input');
+            const ticketsText = input.value.trim();
+            
+            if (!ticketsText) {
+                alert('Please enter hall ticket numbers');
+                return;
+            }
+
+            const tickets = ticketsText.split(/[,\n]+/).map(t => t.trim()).filter(t => t);
+            
+            try {
+                const response = await fetch('/api/halltickets', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ tickets: tickets })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    input.value = '';
+                    loadHallTickets();
+                    loadSummary();
+                    
+                    let message = '';
+                    if (data.added.length > 0) {
+                        message += `Added: ${data.added.join(', ')}\n`;
+                    }
+                    if (data.already_exists.length > 0) {
+                        message += `Already exists: ${data.already_exists.join(', ')}`;
+                    }
+                    
+                    alert(message);
+                }
+            } catch (error) {
+                console.error('Error adding hall tickets:', error);
+                alert('Error adding hall tickets');
+            }
+        }
+
+        // Remove single ticket
+        async function removeTicket(ticket) {
+            if (!confirm(`Remove hall ticket ${ticket}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/halltickets/${ticket}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    loadHallTickets();
+                    loadSummary();
+                }
+            } catch (error) {
+                console.error('Error removing ticket:', error);
+                alert('Error removing ticket');
+            }
+        }
+
+        // Clear all tickets
+        async function clearAllTickets() {
+            if (!confirm('Remove all hall tickets? This cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/halltickets', {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    loadHallTickets();
+                    loadSummary();
+                }
+            } catch (error) {
+                console.error('Error clearing tickets:', error);
+                alert('Error clearing tickets');
+            }
+        }
+
+        // Export hall tickets
+        async function exportHallTickets() {
+            try {
+                const response = await fetch('/api/halltickets/export');
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `hall_tickets_${new Date().toISOString().split('T')[0]}.txt`;
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                }
+            } catch (error) {
+                console.error('Error exporting hall tickets:', error);
+                alert('Error exporting hall tickets');
+            }
+        }
+
+        // Import hall tickets
+        async function importHallTickets(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/halltickets/import-upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert(result.message);
+                    loadHallTickets();
+                    loadSummary();
+                } else {
+                    alert(result.message);
+                }
+                
+                // Clear file input
+                event.target.value = '';
+            } catch (error) {
+                console.error('Error importing hall tickets:', error);
+                alert('Error importing hall tickets');
+            }
+        }
+
+        // Start scraping
+        async function startScraping() {
+            const scrapeBtn = document.getElementById('scrape-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            
+            if (scrapeBtn.disabled) {
+                return;
+            }
+
+            const concurrentMode = document.getElementById('concurrent-mode').checked;
+            const maxWorkers = parseInt(document.getElementById('max-workers').value);
+
+            try {
+                const response = await fetch('/api/scrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        concurrent: concurrentMode,
+                        max_workers: maxWorkers 
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (!data.success) {
+                    alert(data.message);
+                    return;
+                }
+
+                // Show progress
+                document.getElementById('progress-container').style.display = 'block';
+                document.getElementById('log-container').style.display = 'block';
+                document.getElementById('performance-metrics').style.display = 'grid';
+                
+                scrapeBtn.disabled = true;
+                stopBtn.disabled = false;
+                scrapeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scraping...';
+                
+            } catch (error) {
+                console.error('Error starting scraping:', error);
+                alert('Error starting scraping');
+            }
+        }
+
+        // Stop scraping
+        async function stopScraping() {
+            try {
+                const response = await fetch('/api/stop-scraping', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log('Scraping stopped');
+                }
+            } catch (error) {
+                console.error('Error stopping scraping:', error);
+            }
+        }
+
+        // Generate Excel
+        async function generateExcel() {
+            try {
+                const response = await fetch('/api/generate-excel', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
+                    loadSummary();
+                    loadFiles();
+                } else {
+                    alert(data.message);
+                }
+            } catch (error) {
+                console.error('Error generating Excel:', error);
+                alert('Error generating Excel');
+            }
+        }
+
+        // Download Excel
+        function downloadExcel() {
+            window.open('/api/excel/download', '_blank');
+        }
+
+        // Load files
+        async function loadFiles() {
+            try {
+                const response = await fetch('/api/files');
+                const data = await response.json();
+                
+                // PDF files
+                const pdfList = document.getElementById('pdf-files-list');
+                if (data.pdf_files.length > 0) {
+                    pdfList.innerHTML = data.pdf_files.map(file => `
+                        <div class="file-item">
+                            <div class="file-info">
+                                <div class="file-name">${file.ticket}</div>
+                                <div class="file-meta">${formatFileSize(file.size)} • ${file.modified}</div>
+                            </div>
+                            <div class="file-actions">
+                                <button class="btn btn-sm btn-primary" onclick="downloadFile('pdf', '${file.name}')">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteFile('pdf', '${file.name}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    pdfList.innerHTML = '<p class="text-muted">No PDF files found.</p>';
+                }
+
+                // Excel file
+                const excelList = document.getElementById('excel-files-list');
+                if (data.excel_file) {
+                    excelList.innerHTML = `
+                        <div class="file-item">
+                            <div class="file-info">
+                                <div class="file-name">${data.excel_file.name}</div>
+                                <div class="file-meta">${formatFileSize(data.excel_file.size)} • ${data.excel_file.modified}</div>
+                            </div>
+                            <div class="file-actions">
+                                <button class="btn btn-sm btn-primary" onclick="downloadFile('excel', '${data.excel_file.name}')">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteFile('excel', '${data.excel_file.name}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    excelList.innerHTML = '<p class="text-muted">No Excel file found.</p>';
+                }
+            } catch (error) {
+                console.error('Error loading files:', error);
+            }
+        }
+
+        // Download file
+        function downloadFile(type, filename) {
+            window.open(`/api/files/${type}/${filename}`, '_blank');
+        }
+
+        // Delete file
+        async function deleteFile(type, filename) {
+            if (!confirm(`Delete ${filename}?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/files/${type}/${filename}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    loadFiles();
+                    loadSummary();
+                }
+            } catch (error) {
+                console.error('Error deleting file:', error);
+                alert('Error deleting file');
+            }
+        }
+
+        // Clear files
+        async function clearFiles(type) {
+            if (!confirm(`Clear all ${type} files? This cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/files/clear/${type}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    loadFiles();
+                    loadSummary();
+                }
+            } catch (error) {
+                console.error('Error clearing files:', error);
+                alert('Error clearing files');
+            }
+        }
+
+        // Download all files
+        function downloadAllFiles() {
+            window.open('/api/files/download-all', '_blank');
+        }
+
+        // Refresh files
+        function refreshFiles() {
+            loadFiles();
+        }
+
+        // Load summary
+        async function loadSummary() {
+            try {
+                const response = await fetch('/api/summary');
+                const data = await response.json();
+                
+                // Update stats
+                document.getElementById('hall-tickets-count').textContent = data.hall_tickets;
+                document.getElementById('html-files-count').textContent = '0'; // Hidden
+                document.getElementById('pdf-files-count').textContent = data.pdf_files;
+                
+                // Update Excel status
+                const excelStatus = document.getElementById('excel-status');
+                if (data.excel.exists) {
+                    excelStatus.textContent = `${data.excel.size_kb}KB`;
+                    document.getElementById('download-btn').disabled = false;
+                } else {
+                    excelStatus.textContent = 'None';
+                    document.getElementById('download-btn').disabled = true;
+                }
+
+                // Update scraping status
+                const scraping = data.scraping_status;
+                const statusBadge = document.getElementById('status-badge');
+                const scrapeBtn = document.getElementById('scrape-btn');
+                const stopBtn = document.getElementById('stop-btn');
+                const progressContainer = document.getElementById('progress-container');
+                const logContainer = document.getElementById('log-container');
+                const progressBar = document.getElementById('progress-bar');
+                const progressText = document.getElementById('progress-text');
+                const progressPercent = document.getElementById('progress-percent');
+                const scrapingInfo = document.getElementById('scraping-info');
+
+                if (scraping.is_running) {
+                    statusBadge.textContent = 'RUNNING';
+                    statusBadge.className = 'status-badge status-running pulsing';
+                    scrapeBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    scrapeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Scraping...';
+                    progressContainer.style.display = 'block';
+                    logContainer.style.display = 'block';
+                    
+                    progressBar.style.width = `${scraping.progress}%`;
+                    progressText.textContent = scraping.message;
+                    progressPercent.textContent = `${scraping.progress}%`;
+                    scrapingInfo.innerHTML = `<small class="text-warning">Processing: ${scraping.current_ticket}</small>`;
+                    
+                    // Update performance metrics
+                    if (scraping.concurrent_mode) {
+                        document.getElementById('elapsed-time').textContent = formatTime(scraping.elapsed_time);
+                        document.getElementById('active-threads').textContent = scraping.active_threads;
+                        
+                        const speed = scraping.elapsed_time > 0 ? 
+                            Math.round((scraping.success_count + scraping.failed_count) / scraping.elapsed_time * 60) : 0;
+                        document.getElementById('processing-speed').textContent = `${speed}/min`;
+                    }
+                    
+                    const total = scraping.success_count + scraping.failed_count;
+                    const successRate = total > 0 ? Math.round(scraping.success_count / total * 100) : 0;
+                    document.getElementById('success-rate').textContent = `${successRate}%`;
+                } else {
+                    if (scraping.progress === 100) {
+                        statusBadge.textContent = 'COMPLETED';
+                        statusBadge.className = 'status-badge status-success';
+                        scrapingInfo.innerHTML = `<small class="text-success">Completed: ${scraping.success_count} success, ${scraping.failed_count} failed</small>`;
+                    } else {
+                        statusBadge.textContent = 'IDLE';
+                        statusBadge.className = 'status-badge status-idle';
+                        scrapingInfo.innerHTML = '<small class="text-muted">Ready to scrape</small>';
+                    }
+                    
+                    scrapeBtn.disabled = false;
+                    stopBtn.disabled = true;
+                    scrapeBtn.innerHTML = '<i class="fas fa-play"></i> Start Scraping';
+                    
+                    if (scraping.progress === 100) {
+                        setTimeout(() => {
+                            progressContainer.style.display = 'none';
+                        }, 3000);
+                    }
+                }
+
+                // Update logs
+                if (scraping.logs && scraping.logs.length > 0) {
+                    const logsContainer = document.getElementById('logs');
+                    logsContainer.innerHTML = scraping.logs.map(log => {
+                        let className = 'log-entry';
+                        if (log.includes('✓')) className += ' log-success';
+                        else if (log.includes('✗')) className += ' log-error';
+                        else className += ' log-info';
+                        
+                        return `<div class="${className}">${log}</div>`;
+                    }).join('');
+                    
+                    // Auto-scroll to bottom
+                    logsContainer.scrollTop = logsContainer.scrollHeight;
+                }
+
+            } catch (error) {
+                console.error('Error loading summary:', error);
+            }
+        }
+
+        // Utility functions
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function formatTime(seconds) {
+            if (seconds < 60) return `${seconds.toFixed(0)}s`;
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}m ${secs}s`;
+        }
+    </script>
+</body>
+</html>

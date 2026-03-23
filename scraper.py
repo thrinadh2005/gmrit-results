@@ -1,0 +1,228 @@
+"""
+Web scraper module for GMRIT Results
+"""
+import os
+import time
+import base64
+import traceback
+import subprocess
+import shutil
+from datetime import datetime
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait, Select
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
+
+from config import (
+    CHROME_OPTIONS, MAX_RETRIES, RETRY_DELAY,
+    PAGE_LOAD_TIMEOUT, IMPLICIT_WAIT, EXAM_TYPE, VIEW_TYPE,
+    HTML_DIR, PDF_DIR
+)
+from logger import logger
+
+class Scraper:
+    """Web scraper for GMRIT results"""
+    
+    def __init__(self):
+        self.driver = None
+        self.wait = None
+        
+    def find_chrome_executable(self):
+        """Find Chrome executable on the system"""
+        names = ['chrome', 'google-chrome', 'chromium', 'chrome.exe']
+        for name in names:
+            path = shutil.which(name)
+            if path:
+                return path
+        # Common Windows path
+        common = r'C:\Program Files\Google\Chrome\Application\chrome.exe'
+        if os.path.exists(common):
+            return common
+        return None
+    
+    def create_driver(self):
+        """Create and return a WebDriver instance"""
+        options = Options()
+        for option in CHROME_OPTIONS:
+            options.add_argument(option)
+        
+        # Set preferences for PDF download
+        prefs = {
+            "printing.print_preview_sticky_settings.had_selection": False,
+            "printing.default_printer_selection.selected_printer_name": "",
+            "profile.default_content_settings.popups": 0,
+            "profile.default_content_setting_values.notifications": 2,
+        }
+        options.add_experimental_option("prefs", prefs)
+        
+        try:
+            logger.info("Initializing Chrome WebDriver...")
+            self.driver = webdriver.Chrome(
+                service=Service(ChromeDriverManager().install()),
+                options=options
+            )
+            self.driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)
+            self.driver.implicitly_wait(IMPLICIT_WAIT)
+            self.wait = WebDriverWait(self.driver, PAGE_LOAD_TIMEOUT)
+            logger.success("WebDriver initialized successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to initialize WebDriver: {str(e)}")
+            return False
+    
+    def close_driver(self):
+        """Close the WebDriver"""
+        if self.driver:
+            try:
+                self.driver.quit()
+                logger.success("WebDriver closed successfully")
+            except Exception as e:
+                logger.warning(f"Error closing WebDriver: {str(e)}")
+    
+    def process_hallticket(self, hallticket, output_dir=None):
+        """Process a single hall ticket and return the result"""
+        result = {
+            'hallticket': hallticket,
+            'success': False,
+            'pdf_path': None,
+            'html_path': None,
+            'error': None
+        }
+        
+        for attempt in range(MAX_RETRIES):
+            try:
+                logger.info(f"Processing {hallticket} (Attempt {attempt + 1}/{MAX_RETRIES})")
+                
+                # Navigate to results page
+                self.driver.get("https://gmrit.campx.in/gmrit/ums/results")
+                time.sleep(5)
+                
+                # Enter hall ticket number
+                hall_input = self.wait.until(
+                    EC.presence_of_element_located((By.ID, "rollNo"))
+                )
+                hall_input.clear()
+                time.sleep(1)
+                hall_input.send_keys(hallticket)
+                time.sleep(2)
+                
+                # Verify entered value
+                entered_value = hall_input.get_attribute('value')
+                if entered_value != hallticket:
+                    raise Exception(f"Hall ticket not entered correctly: expected {hallticket}, got {entered_value}")
+                
+                logger.info(f"✓ Hallticket entered: {hallticket}")
+                
+                # Select exam type
+                self._select_dropdown("examType", EXAM_TYPE)
+                time.sleep(2)
+                
+                # Select view type
+                self._select_dropdown("viewType", VIEW_TYPE)
+                time.sleep(2)
+                
+                # Click Get Result button
+                self._click_get_result()
+                time.sleep(5)
+                
+                # Save page source to HTML directory
+                html_path = os.path.join(HTML_DIR, f"{hallticket}_page_source.html")
+                with open(html_path, 'w', encoding='utf-8') as f:
+                    f.write(self.driver.page_source)
+                result['html_path'] = html_path
+                
+                # Generate PDF to PDF directory
+                pdf_path = self._generate_pdf(PDF_DIR, hallticket)
+                if pdf_path:
+                    result['pdf_path'] = pdf_path
+                    result['success'] = True
+                    logger.success(f"✓ Successfully processed {hallticket}")
+                    return result
+                
+            except Exception as e:
+                logger.warning(f"Attempt {attempt + 1} failed: {str(e)}")
+                if attempt < MAX_RETRIES - 1:
+                    logger.info(f"Retrying in {RETRY_DELAY} seconds...")
+                    time.sleep(RETRY_DELAY)
+                else:
+                    result['error'] = str(e)
+        
+        return result
+    
+    def _select_dropdown(self, dropdown_id, value):
+        """Select value from dropdown"""
+        try:
+            dropdown = self.wait.until(
+                EC.element_to_be_clickable((By.ID, dropdown_id))
+            )
+            dropdown.click()
+            time.sleep(2)
+            
+            # Try to find and click the option
+            try:
+                option = self.wait.until(
+                    EC.element_to_be_clickable((By.XPATH, f"//li[contains(text(), '{value}')]"))
+                )
+                option.click()
+            except:
+                # Fallback: click first available option
+                options = self.driver.find_elements(By.XPATH, "//li")
+                for opt in options:
+                    if value.lower() in opt.text.lower():
+                        opt.click()
+                        break
+                else:
+                    if options:
+                        options[0].click()
+            
+            logger.info(f"✓ Selected {dropdown_id}: {value}")
+        except Exception as e:
+            logger.warning(f"Could not select {dropdown_id}: {str(e)}")
+    
+    def _click_get_result(self):
+        """Click the Get Result button"""
+        try:
+            btn = self.wait.until(
+                EC.element_to_be_clickable((By.XPATH, "//button[contains(text(),'Get Result')]"))
+            )
+            try:
+                btn.click()
+            except:
+                self.driver.execute_script("arguments[0].click();", btn)
+            logger.info("✓ Clicked Get Result button")
+        except Exception as e:
+            logger.warning(f"Could not click Get Result button: {str(e)}")
+    
+    def _generate_pdf(self, output_dir, hallticket):
+        """Generate PDF from the current page"""
+        pdf_path = os.path.join(output_dir, f"{hallticket}_results.pdf")
+        
+        print_options = {
+            "paperWidth": 8.5,
+            "paperHeight": 11,
+            "marginTop": 0.4,
+            "marginBottom": 0.4,
+            "marginLeft": 0.4,
+            "marginRight": 0.4,
+            "displayHeaderFooter": False,
+            "printBackground": True,
+            "landscape": False
+        }
+        
+        try:
+            result = self.driver.execute_cdp_cmd('Page.printToPDF', print_options)
+            pdf_data = base64.b64decode(result['data'])
+            with open(pdf_path, 'wb') as f:
+                f.write(pdf_data)
+            logger.success(f"✓ PDF created: {pdf_path}")
+            return pdf_path
+        except Exception as e:
+            logger.warning(f"PDF generation failed: {str(e)}")
+            # Fallback: save screenshot
+            screenshot_path = os.path.join(output_dir, f"{hallticket}_results.png")
+            self.driver.save_screenshot(screenshot_path)
+            logger.info(f"✓ Screenshot saved: {screenshot_path}")
+            return screenshot_path
