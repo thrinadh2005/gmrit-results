@@ -168,8 +168,8 @@ class RenderScraper:
             }
 
 # Global scraper instance
-scraper = RenderScraper()
+render_scraper = RenderScraper()
 
 def scrape_student_results(hall_ticket, output_dir='html_pages'):
     """Main function to scrape student results"""
-    return scraper.scrape_results(hall_ticket, output_dir)
+    return render_scraper.scrape_results(hall_ticket, output_dir)

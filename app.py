@@ -12,7 +12,16 @@ import zipfile
 try:
     from scraper_render import scrape_student_results
 except ImportError:
-    from scraper import scrape_student_results
+    try:
+        from scraper import scrape_student_results
+    except ImportError:
+        # Last resort - create simple fallback
+        def scrape_student_results(hall_ticket, output_dir='html_pages'):
+            return {
+                'success': False,
+                'hall_ticket': hall_ticket,
+                'error': 'Scraper not available - deployment issue'
+            }
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import HTML_DIR, PDF_DIR, OUTPUT_DIR, EXCEL_FILE
