@@ -13,19 +13,28 @@ A high-performance web application to scrape student exam results from GMRIT (GM
 - 📱 **Mobile Friendly** - Works on all devices
 - 🔄 **Real-time Updates** - Live progress tracking and status updates
 
-## Quick Start
+## 🚀 Quick Deploy to Render
 
-1. **Install dependencies:**
+1. **Push to GitHub:**
    ```bash
-   pip install -r requirements.txt
+   git remote add origin https://github.com/YOUR_USERNAME/gmrit-results.git
+   git push -u origin main
    ```
 
-2. **Run the application:**
-   ```bash
-   python run.py
-   ```
+2. **Deploy to Render:**
+   - Go to https://render.com
+   - Connect GitHub
+   - Select `gmrit-results` repository
+   - Use: `pip install -r requirements.txt && python run.py`
+   - Deploy!
 
-3. **Open your browser** and navigate to: http://localhost:5000
+**🌐 Live URL:** `https://your-app.onrender.com` with full scraping functionality
+
+## 📋 Alternative Deployments
+
+- **VPS:** DigitalOcean, AWS EC2 (full control)
+- **Docker:** `docker build -t gmrit-scraper . && docker run -p 5000:5000 gmrit-scraper`
+- **Local:** `python run.py` for development
 
 ## Usage
 
