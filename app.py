@@ -9,13 +9,15 @@ import threading
 import time
 import json
 import zipfile
-import io
+try:
+    from scraper_render import scrape_student_results
+except ImportError:
+    from scraper import scrape_student_results
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import HTML_DIR, PDF_DIR, OUTPUT_DIR, EXCEL_FILE
 from logger import logger
 from data_manager import DataManager
-from scraper import Scraper
 from excel_generator import ExcelGenerator
 
 app = Flask(__name__)
