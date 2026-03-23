@@ -7,15 +7,18 @@ import sys
 from app import app
 
 if __name__ == '__main__':
-    # Create necessary directories
+    # Ensure necessary directories exist
     os.makedirs('data', exist_ok=True)
     os.makedirs('html_pages', exist_ok=True)
     os.makedirs('pdfs', exist_ok=True)
     
-    print("Starting GMRIT Results Scraper Web Interface...")
-    print("Access the application at: http://localhost:5000")
+    # Get port from environment variable (Render sets this)
+    port = int(os.environ.get('PORT', 5000))
+    
+    print(f"Starting GMRIT Results Scraper Web Interface...")
+    print(f"Access application at: http://localhost:{port}")
     print("Press Ctrl+C to stop the server")
     print("-" * 50)
     
-    # Run in production mode
-    app.run(debug=False, host='0.0.0.0', port=5000, threaded=True)
+    # Run Flask app
+    app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
