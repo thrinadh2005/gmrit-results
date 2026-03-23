@@ -19,6 +19,8 @@ if __name__ == '__main__':
     print(f"Access application at: http://localhost:{port}")
     print("Press Ctrl+C to stop the server")
     print("-" * 50)
+    print("Render deployment optimized - Chrome/Selenium fixed")
+    print("-" * 50)
     
     # Run Flask app
     app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
