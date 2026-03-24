@@ -121,16 +121,17 @@ def start_scraping():
     return jsonify({'success': True, 'message': 'Scraping started', 'concurrent': concurrent_mode})
 
 def scrape_single_ticket(ticket, output_dir):
-    """Scrape a single ticket"""
+    """Scrape a single ticket using the new scraper function"""
     try:
-        scraper = Scraper()
-        if not scraper.create_driver():
-            return {'success': False, 'ticket': ticket, 'error': 'Failed to initialize WebDriver'}
-        
-        result = scraper.process_hallticket(ticket, output_dir)
-        scraper.close_driver()
-        
-        return result
+        result = scrape_student_results(ticket, output_dir)
+        # Convert result format to match expected structure
+        return {
+            'success': result.get('success', False),
+            'ticket': ticket,
+            'error': result.get('error', 'Unknown error'),
+            'html_file': result.get('html_file'),
+            'message': result.get('message', '')
+        }
     except Exception as e:
         return {'success': False, 'ticket': ticket, 'error': str(e)}
 
@@ -187,13 +188,7 @@ def scrape_in_background(tickets, concurrent_mode=False, max_workers=3):
                         scraping_status['failed_count'] += 1
                         scraping_status['logs'].append(f"✗ Timeout/Error: {ticket} - {str(e)}")
         else:
-            # Sequential scraping (original method)
-            scraper = Scraper()
-            if not scraper.create_driver():
-                scraping_status['message'] = 'Failed to initialize WebDriver'
-                scraping_status['is_running'] = False
-                return
-            
+            # Sequential scraping using simple scraper
             for i, ticket in enumerate(tickets, 1):
                 scraping_status.update({
                     'progress': int((i - 1) / len(tickets) * 100),
@@ -201,7 +196,7 @@ def scrape_in_background(tickets, concurrent_mode=False, max_workers=3):
                     'message': f'Processing {i}/{len(tickets)}: {ticket}'
                 })
                 
-                result = scraper.process_hallticket(ticket, OUTPUT_DIR)
+                result = scrape_single_ticket(ticket, OUTPUT_DIR)
                 
                 if result['success']:
                     scraping_status['success_count'] += 1
@@ -210,8 +205,6 @@ def scrape_in_background(tickets, concurrent_mode=False, max_workers=3):
                     scraping_status['failed_count'] += 1
                     error_msg = f"✗ Failed: {ticket} - {result.get('error', 'Unknown error')}"
                     scraping_status['logs'].append(error_msg)
-            
-            scraper.close_driver()
         
         # Generate Excel
         scraping_status['message'] = 'Generating Excel file...'
