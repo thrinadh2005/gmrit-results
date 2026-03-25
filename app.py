@@ -9,16 +9,16 @@ import threading
 import time
 import json
 import zipfile
-# Import scraper with fallbacks - prioritize simple working scraper
+# Import scraper with fallbacks - prioritize real Selenium scraper
 try:
-    from scraper_simple import scrape_student_results
-except ImportError:
+    from scraper import scrape_student_results
+except (ImportError, Exception):
     try:
         from scraper_render import scrape_student_results
-    except ImportError:
+    except (ImportError, Exception):
         try:
-            from scraper import scrape_student_results
-        except ImportError:
+            from scraper_simple import scrape_student_results
+        except (ImportError, Exception):
             # Last resort - create simple fallback
             def scrape_student_results(hall_ticket, output_dir='html_pages'):
                 return {

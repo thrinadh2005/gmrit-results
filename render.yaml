@@ -1,11 +1,11 @@
 services:
-  # Type: web
-  name: gmrit-results
-  env: python
-  plan: free
-  buildCommand: pip install -r requirements.txt
-  startCommand: python run.py
-  healthCheckPath: /
-  envVars:
-    - key: PYTHON_VERSION
-      value: 3.9
+  - type: web
+    name: gmrit-results
+    env: docker
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: PYTHON_VERSION
+        value: 3.9

@@ -226,3 +226,40 @@ class Scraper:
             self.driver.save_screenshot(screenshot_path)
             logger.info(f"✓ Screenshot saved: {screenshot_path}")
             return screenshot_path
+
+# Global scraper instance for convenience
+_global_scraper = None
+
+def get_scraper():
+    """Get or create global scraper instance"""
+    global _global_scraper
+    if _global_scraper is None:
+        _global_scraper = Scraper()
+        if not _global_scraper.create_driver():
+            return None
+    return _global_scraper
+
+def scrape_student_results(hall_ticket, output_dir=None):
+    """Function compatible with app.py interface"""
+    from config import HTML_DIR
+    output_dir = output_dir or HTML_DIR
+    
+    scraper = get_scraper()
+    if not scraper:
+        return {
+            'success': False,
+            'hall_ticket': hall_ticket,
+            'error': 'Failed to initialize Chrome WebDriver'
+        }
+    
+    result = scraper.process_hallticket(hall_ticket, output_dir)
+    
+    # Map Scraper.process_hallticket result to app.py expected format
+    return {
+        'success': result['success'],
+        'hall_ticket': hall_ticket,
+        'html_file': result['html_path'],
+        'pdf_file': result['pdf_path'],
+        'error': result['error'],
+        'message': 'Successfully scraped' if result['success'] else f"Failed: {result['error']}"
+    }
