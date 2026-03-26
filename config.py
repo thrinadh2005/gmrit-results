@@ -44,5 +44,6 @@ MAX_RETRIES = 3
 RETRY_DELAY = 5  # seconds
 
 # Timeouts
-PAGE_LOAD_TIMEOUT = 30
-IMPLICIT_WAIT = 10
+PAGE_LOAD_TIMEOUT = 60
+IMPLICIT_WAIT = 15
+PAGE_LOAD_STRATEGY = "eager"  # Options: normal, eager, none

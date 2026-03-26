@@ -18,7 +18,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from config import (
     CHROME_OPTIONS, MAX_RETRIES, RETRY_DELAY,
-    PAGE_LOAD_TIMEOUT, IMPLICIT_WAIT, EXAM_TYPE, VIEW_TYPE,
+    PAGE_LOAD_TIMEOUT, IMPLICIT_WAIT, PAGE_LOAD_STRATEGY, EXAM_TYPE, VIEW_TYPE,
     HTML_DIR, PDF_DIR
 )
 from logger import logger
@@ -37,6 +37,8 @@ def get_driver_path():
             logger.warning(f"Failed to get driver via manager: {e}")
             return None
     return _cached_driver_path
+
+from selenium.common.exceptions import TimeoutException, WebDriverException
 
 class Scraper:
     """Web scraper for GMRIT results"""
@@ -61,6 +63,7 @@ class Scraper:
     def create_driver(self):
         """Create and return a WebDriver instance with robust fallback mechanisms"""
         options = Options()
+        options.page_load_strategy = PAGE_LOAD_STRATEGY
         for option in CHROME_OPTIONS:
             options.add_argument(option)
         
@@ -132,7 +135,12 @@ class Scraper:
                 logger.info(f"Processing {hallticket} (Attempt {attempt + 1}/{MAX_RETRIES})")
                 
                 # Navigate to results page
-                self.driver.get("https://gmrit.campx.in/gmrit/ums/results")
+                try:
+                    self.driver.get("https://gmrit.campx.in/gmrit/ums/results")
+                except TimeoutException:
+                    logger.warning(f"Initial page load timed out for {hallticket}, attempting to stop page load and continue...")
+                    self.driver.execute_script("window.stop();")
+                
                 # Wait for rollNo element specifically instead of static sleep
                 hall_input = self.wait.until(
                     EC.presence_of_element_located((By.ID, "rollNo"))
