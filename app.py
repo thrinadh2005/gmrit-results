@@ -148,7 +148,7 @@ def scrape_in_background(tickets, concurrent_mode=False, max_workers=3):
         'failed_count': 0,
         'message': 'Initializing scraper...',
         'logs': [],
-        'start_time': datetime.now(),
+        'start_time': datetime.now().isoformat(),
         'elapsed_time': 0,
         'concurrent_mode': concurrent_mode,
         'active_threads': 0
@@ -217,7 +217,11 @@ def scrape_in_background(tickets, concurrent_mode=False, max_workers=3):
         
         # Calculate elapsed time
         if scraping_status['start_time']:
-            scraping_status['elapsed_time'] = (datetime.now() - scraping_status['start_time']).total_seconds()
+            try:
+                start_time = datetime.fromisoformat(scraping_status['start_time'])
+                scraping_status['elapsed_time'] = (datetime.now() - start_time).total_seconds()
+            except (ValueError, TypeError):
+                pass
         
         scraping_status.update({
             'is_running': False,
@@ -241,18 +245,22 @@ def get_status():
     
     # Calculate additional timing metrics if scraping is running
     if scraping_status['is_running'] and scraping_status['start_time']:
-        now = datetime.now()
-        elapsed = (now - scraping_status['start_time']).total_seconds()
-        scraping_status['elapsed_time'] = round(elapsed, 1)
-        
-        # Calculate estimate
-        processed = scraping_status['success_count'] + scraping_status['failed_count']
-        if processed > 0:
-            avg_time = elapsed / processed
-            remaining = scraping_status['total_tickets'] - processed
-            scraping_status['estimated_remaining'] = round(avg_time * remaining, 1)
-        else:
-            scraping_status['estimated_remaining'] = None
+        try:
+            start_time = datetime.fromisoformat(scraping_status['start_time'])
+            now = datetime.now()
+            elapsed = (now - start_time).total_seconds()
+            scraping_status['elapsed_time'] = round(elapsed, 1)
+            
+            # Calculate estimate
+            processed = scraping_status['success_count'] + scraping_status['failed_count']
+            if processed > 0:
+                avg_time = elapsed / processed
+                remaining = scraping_status['total_tickets'] - processed
+                scraping_status['estimated_remaining'] = round(avg_time * remaining, 1)
+            else:
+                scraping_status['estimated_remaining'] = None
+        except (ValueError, TypeError):
+            pass
             
     return jsonify(scraping_status)
 

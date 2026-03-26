@@ -23,6 +23,21 @@ from config import (
 )
 from logger import logger
 
+# Cache for the ChromeDriver path to avoid redundant downloads/checks
+_cached_driver_path = None
+
+def get_driver_path():
+    """Get the ChromeDriver path, using cache if available"""
+    global _cached_driver_path
+    if _cached_driver_path is None:
+        try:
+            logger.info("Checking for ChromeDriver updates...")
+            _cached_driver_path = ChromeDriverManager().install()
+        except Exception as e:
+            logger.warning(f"Failed to get driver via manager: {e}")
+            return None
+    return _cached_driver_path
+
 class Scraper:
     """Web scraper for GMRIT results"""
     
@@ -67,10 +82,14 @@ class Scraper:
         try:
             logger.info("Initializing Chrome WebDriver (Method 1: ChromeDriverManager)...")
             try:
-                self.driver = webdriver.Chrome(
-                    service=Service(ChromeDriverManager().install()),
-                    options=options
-                )
+                driver_path = get_driver_path()
+                if driver_path:
+                    self.driver = webdriver.Chrome(
+                        service=Service(driver_path),
+                        options=options
+                    )
+                else:
+                    raise Exception("ChromeDriver path not available")
             except Exception as e1:
                 logger.warning(f"Method 1 failed: {str(e1)}")
                 logger.info("Attempting Method 2: System Chrome...")
@@ -161,44 +180,45 @@ class Scraper:
         return result
     
     def _select_dropdown(self, dropdown_id, value):
-        """Select value from dropdown with optimized waits"""
+        """Select value from dropdown with optimized script execution"""
         try:
             dropdown = self.wait.until(
-                EC.element_to_be_clickable((By.ID, dropdown_id))
+                EC.presence_of_element_located((By.ID, dropdown_id))
             )
-            dropdown.click()
+            self.driver.execute_script("arguments[0].click();", dropdown)
             
-            # Wait for the dropdown options to appear
+            # Wait for the dropdown options to appear in the DOM
+            option_xpath = f"//li[contains(text(), '{value}')]"
             try:
                 option = self.wait.until(
-                    EC.element_to_be_clickable((By.XPATH, f"//li[contains(text(), '{value}')]"))
+                    EC.presence_of_element_located((By.XPATH, option_xpath))
                 )
-                option.click()
+                self.driver.execute_script("arguments[0].click();", option)
             except:
-                # Fallback: check all options
-                options = self.driver.find_elements(By.XPATH, "//li")
-                for opt in options:
-                    if value.lower() in opt.text.lower():
-                        opt.click()
-                        break
-                else:
-                    if options:
-                        options[0].click()
+                # Fallback: check all options via script for speed
+                self.driver.execute_script(f"""
+                    var options = document.querySelectorAll('li');
+                    var value = '{value}'.toLowerCase();
+                    for (var i = 0; i < options.length; i++) {{
+                        if (options[i].textContent.toLowerCase().includes(value)) {{
+                            options[i].click();
+                            return true;
+                        }}
+                    }}
+                    if (options.length > 0) options[0].click();
+                """)
             
             logger.info(f"✓ Selected {dropdown_id}: {value}")
         except Exception as e:
             logger.warning(f"Could not select {dropdown_id}: {str(e)}")
-    
+
     def _click_get_result(self):
-        """Click the Get Result button"""
+        """Click the Get Result button using script for speed"""
         try:
             btn = self.wait.until(
-                EC.element_to_be_clickable((By.XPATH, "//button[contains(text(),'Get Result')]"))
+                EC.presence_of_element_located((By.XPATH, "//button[contains(text(),'Get Result')]"))
             )
-            try:
-                btn.click()
-            except:
-                self.driver.execute_script("arguments[0].click();", btn)
+            self.driver.execute_script("arguments[0].click();", btn)
             logger.info("✓ Clicked Get Result button")
         except Exception as e:
             logger.warning(f"Could not click Get Result button: {str(e)}")
