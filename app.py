@@ -236,7 +236,24 @@ def scrape_in_background(tickets, concurrent_mode=False, max_workers=3):
 
 @app.route('/api/status')
 def get_status():
-    """Get current scraping status"""
+    """Get current scraping status with calculated metrics"""
+    global scraping_status
+    
+    # Calculate additional timing metrics if scraping is running
+    if scraping_status['is_running'] and scraping_status['start_time']:
+        now = datetime.now()
+        elapsed = (now - scraping_status['start_time']).total_seconds()
+        scraping_status['elapsed_time'] = round(elapsed, 1)
+        
+        # Calculate estimate
+        processed = scraping_status['success_count'] + scraping_status['failed_count']
+        if processed > 0:
+            avg_time = elapsed / processed
+            remaining = scraping_status['total_tickets'] - processed
+            scraping_status['estimated_remaining'] = round(avg_time * remaining, 1)
+        else:
+            scraping_status['estimated_remaining'] = None
+            
     return jsonify(scraping_status)
 
 @app.route('/api/summary')

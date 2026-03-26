@@ -528,9 +528,13 @@
                                     <div class="progress-container" id="progress-container">
                                         <div class="d-flex justify-content-between mb-2">
                                             <span id="progress-text">Starting...</span>
-                                            <span id="progress-percent">0%</span>
+                                            <div class="text-end">
+                                                <span id="timer-text" class="badge bg-dark me-2">Time: 0s</span>
+                                                <span id="estimate-text" class="badge bg-info me-2" style="display:none">Est. Left: --</span>
+                                                <span id="progress-percent" class="fw-bold">0%</span>
+                                            </div>
                                         </div>
-                                        <div class="progress">
+                                        <div class="progress" style="height: 10px;">
                                             <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" 
                                                  role="progressbar" style="width: 0%"></div>
                                         </div>
@@ -1047,18 +1051,30 @@
                     progressPercent.textContent = `${scraping.progress}%`;
                     scrapingInfo.innerHTML = `<small class="text-warning">Processing: ${scraping.current_ticket}</small>`;
                     
-                    // Update performance metrics
-                    if (scraping.concurrent_mode) {
-                        document.getElementById('elapsed-time').textContent = formatTime(scraping.elapsed_time);
-                        document.getElementById('active-threads').textContent = scraping.active_threads;
-                        
-                        const speed = scraping.elapsed_time > 0 ? 
-                            Math.round((scraping.success_count + scraping.failed_count) / scraping.elapsed_time * 60) : 0;
-                        document.getElementById('processing-speed').textContent = `${speed}/min`;
+                    // Update timer and estimate
+                    const timerText = document.getElementById('timer-text');
+                    const estimateText = document.getElementById('estimate-text');
+                    
+                    timerText.textContent = `Time: ${formatTime(scraping.elapsed_time)}`;
+                    
+                    if (scraping.estimated_remaining !== undefined && scraping.estimated_remaining !== null) {
+                        estimateText.style.display = 'inline-block';
+                        estimateText.textContent = `Est. Left: ${formatTime(scraping.estimated_remaining)}`;
+                    } else {
+                        estimateText.style.display = 'none';
                     }
                     
-                    const total = scraping.success_count + scraping.failed_count;
-                    const successRate = total > 0 ? Math.round(scraping.success_count / total * 100) : 0;
+                    // Update performance metrics
+                    document.getElementById('performance-metrics').style.display = 'grid';
+                    document.getElementById('elapsed-time').textContent = formatTime(scraping.elapsed_time);
+                    document.getElementById('active-threads').textContent = scraping.active_threads || 0;
+                    
+                    const totalProcessed = (scraping.success_count || 0) + (scraping.failed_count || 0);
+                    const speed = scraping.elapsed_time > 0 ? 
+                        Math.round(totalProcessed / scraping.elapsed_time * 60) : 0;
+                    document.getElementById('processing-speed').textContent = `${speed}/min`;
+                    
+                    const successRate = totalProcessed > 0 ? Math.round((scraping.success_count || 0) / totalProcessed * 100) : 0;
                     document.getElementById('success-rate').textContent = `${successRate}%`;
                 } else {
                     if (scraping.progress === 100) {

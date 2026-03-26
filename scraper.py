@@ -114,35 +114,27 @@ class Scraper:
                 
                 # Navigate to results page
                 self.driver.get("https://gmrit.campx.in/gmrit/ums/results")
-                time.sleep(5)
-                
-                # Enter hall ticket number
+                # Wait for rollNo element specifically instead of static sleep
                 hall_input = self.wait.until(
                     EC.presence_of_element_located((By.ID, "rollNo"))
                 )
+                
                 hall_input.clear()
-                time.sleep(1)
                 hall_input.send_keys(hallticket)
-                time.sleep(2)
-                
-                # Verify entered value
-                entered_value = hall_input.get_attribute('value')
-                if entered_value != hallticket:
-                    raise Exception(f"Hall ticket not entered correctly: expected {hallticket}, got {entered_value}")
-                
-                logger.info(f"✓ Hallticket entered: {hallticket}")
                 
                 # Select exam type
                 self._select_dropdown("examType", EXAM_TYPE)
-                time.sleep(2)
                 
                 # Select view type
                 self._select_dropdown("viewType", VIEW_TYPE)
-                time.sleep(2)
                 
                 # Click Get Result button
                 self._click_get_result()
-                time.sleep(5)
+                
+                # Wait for the result table or a specific element that confirms result loaded
+                self.wait.until(
+                    EC.presence_of_element_located((By.TAG_NAME, "table"))
+                )
                 
                 # Save page source to HTML directory
                 html_path = os.path.join(HTML_DIR, f"{hallticket}_page_source.html")
@@ -169,22 +161,21 @@ class Scraper:
         return result
     
     def _select_dropdown(self, dropdown_id, value):
-        """Select value from dropdown"""
+        """Select value from dropdown with optimized waits"""
         try:
             dropdown = self.wait.until(
                 EC.element_to_be_clickable((By.ID, dropdown_id))
             )
             dropdown.click()
-            time.sleep(2)
             
-            # Try to find and click the option
+            # Wait for the dropdown options to appear
             try:
                 option = self.wait.until(
                     EC.element_to_be_clickable((By.XPATH, f"//li[contains(text(), '{value}')]"))
                 )
                 option.click()
             except:
-                # Fallback: click first available option
+                # Fallback: check all options
                 options = self.driver.find_elements(By.XPATH, "//li")
                 for opt in options:
                     if value.lower() in opt.text.lower():
