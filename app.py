@@ -9,23 +9,18 @@ import threading
 import time
 import json
 import zipfile
-# Import scraper with fallbacks - prioritize real Selenium scraper
+# Import scraper
 try:
     from scraper import scrape_student_results
-except (ImportError, Exception):
-    try:
-        from scraper_render import scrape_student_results
-    except (ImportError, Exception):
-        try:
-            from scraper_simple import scrape_student_results
-        except (ImportError, Exception):
-            # Last resort - create simple fallback
-            def scrape_student_results(hall_ticket, output_dir='html_pages'):
-                return {
-                    'success': False,
-                    'hall_ticket': hall_ticket,
-                    'error': 'Scraper not available - deployment issue'
-                }
+except (ImportError, Exception) as e:
+    logger.error(f"Failed to import scraper: {str(e)}")
+    # Last resort - create simple fallback
+    def scrape_student_results(hall_ticket, output_dir='html_pages'):
+        return {
+            'success': False,
+            'hall_ticket': hall_ticket,
+            'error': f'Scraper not available: {str(e)}'
+        }
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import HTML_DIR, PDF_DIR, OUTPUT_DIR, EXCEL_FILE
