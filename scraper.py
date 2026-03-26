@@ -44,7 +44,7 @@ class Scraper:
         return None
     
     def create_driver(self):
-        """Create and return a WebDriver instance"""
+        """Create and return a WebDriver instance with robust fallback mechanisms"""
         options = Options()
         for option in CHROME_OPTIONS:
             options.add_argument(option)
@@ -58,19 +58,35 @@ class Scraper:
         }
         options.add_experimental_option("prefs", prefs)
         
+        # Binary location detection (especially important for Render/Docker)
+        chrome_bin = self.find_chrome_executable()
+        if chrome_bin:
+            options.binary_location = chrome_bin
+            logger.info(f"Using Chrome binary at: {chrome_bin}")
+
         try:
-            logger.info("Initializing Chrome WebDriver...")
-            self.driver = webdriver.Chrome(
-                service=Service(ChromeDriverManager().install()),
-                options=options
-            )
+            logger.info("Initializing Chrome WebDriver (Method 1: ChromeDriverManager)...")
+            try:
+                self.driver = webdriver.Chrome(
+                    service=Service(ChromeDriverManager().install()),
+                    options=options
+                )
+            except Exception as e1:
+                logger.warning(f"Method 1 failed: {str(e1)}")
+                logger.info("Attempting Method 2: System Chrome...")
+                # Try to use system chrome without driver manager (requires chromedriver in path)
+                self.driver = webdriver.Chrome(options=options)
+            
             self.driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)
             self.driver.implicitly_wait(IMPLICIT_WAIT)
             self.wait = WebDriverWait(self.driver, PAGE_LOAD_TIMEOUT)
             logger.success("WebDriver initialized successfully")
             return True
         except Exception as e:
-            logger.error(f"Failed to initialize WebDriver: {str(e)}")
+            error_msg = str(e).split('\n')[0]  # Get first line of error
+            logger.error(f"Failed to initialize WebDriver: {error_msg}")
+            # Log full traceback for debugging in the log file
+            logger.debug(traceback.format_exc())
             return False
     
     def close_driver(self):
@@ -231,35 +247,48 @@ class Scraper:
 _global_scraper = None
 
 def get_scraper():
-    """Get or create global scraper instance"""
+    """Get or create global scraper instance (Not thread-safe)"""
     global _global_scraper
     if _global_scraper is None:
         _global_scraper = Scraper()
         if not _global_scraper.create_driver():
+            _global_scraper = None  # Reset so we can try again
             return None
     return _global_scraper
 
 def scrape_student_results(hall_ticket, output_dir=None):
-    """Function compatible with app.py interface"""
+    """
+    Main entry point for scraping a student's results.
+    Creates a new scraper instance for thread safety.
+    """
     from config import HTML_DIR
     output_dir = output_dir or HTML_DIR
     
-    scraper = get_scraper()
-    if not scraper:
+    scraper = Scraper()
+    if not scraper.create_driver():
+        # Fallback to global scraper if thread-local fails (rare)
+        logger.warning(f"Failed to create new driver for {hall_ticket}, attempting fallback...")
+        scraper = get_scraper()
+        if not scraper:
+            return {
+                'success': False,
+                'hall_ticket': hall_ticket,
+                'error': 'Failed to initialize Chrome WebDriver'
+            }
+    
+    try:
+        result = scraper.process_hallticket(hall_ticket, output_dir)
+        
+        # Map Scraper.process_hallticket result to app.py expected format
         return {
-            'success': False,
+            'success': result['success'],
             'hall_ticket': hall_ticket,
-            'error': 'Failed to initialize Chrome WebDriver'
+            'html_file': result['html_path'],
+            'pdf_file': result['pdf_path'],
+            'error': result['error'],
+            'message': 'Successfully scraped' if result['success'] else f"Failed: {result['error']}"
         }
-    
-    result = scraper.process_hallticket(hall_ticket, output_dir)
-    
-    # Map Scraper.process_hallticket result to app.py expected format
-    return {
-        'success': result['success'],
-        'hall_ticket': hall_ticket,
-        'html_file': result['html_path'],
-        'pdf_file': result['pdf_path'],
-        'error': result['error'],
-        'message': 'Successfully scraped' if result['success'] else f"Failed: {result['error']}"
-    }
+    finally:
+        # Only close if it's a dedicated instance, not the global one
+        if scraper != _global_scraper:
+            scraper.close_driver()
