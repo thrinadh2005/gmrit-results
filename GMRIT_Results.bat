@@ -23,6 +23,18 @@ if not exist "venv" (
     call venv\Scripts\activate
     echo Installing dependencies...
     pip install -r requirements.txt
+    
+    echo.
+    set /p "create_shortcut=Would you like to create a desktop shortcut for easy access? (y/n): "
+    if /i "!create_shortcut!"=="y" (
+        echo Creating desktop shortcut...
+        set "scriptPath=%~f0"
+        set "shortcutName=GMRIT Results Scraper.lnk"
+        set "desktopPath=%USERPROFILE%\Desktop"
+        
+        powershell -Command "$WshShell = New-Object -ComObject WScript.Shell; $Shortcut = $WshShell.CreateShortcut(\"$desktopPath\!shortcutName!\"); $Shortcut.TargetPath = \"!scriptPath!\"; $Shortcut.WorkingDirectory = \"%~dp0\"; $Shortcut.IconLocation = \"powershell.exe\"; $Shortcut.Save()"
+        echo Shortcut created on your desktop!
+    )
 ) else (
     call venv\Scripts\activate
 )
