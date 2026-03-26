@@ -32,8 +32,21 @@ from config import HTML_DIR, PDF_DIR, OUTPUT_DIR, EXCEL_FILE
 from logger import logger
 from data_manager import DataManager
 from excel_generator import ExcelGenerator
+import io
 
-app = Flask(__name__)
+def get_resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+app = Flask(__name__, 
+            template_folder=get_resource_path('templates'),
+            static_folder=get_resource_path('static'))
 
 # Global variable to track scraping status
 scraping_status = {

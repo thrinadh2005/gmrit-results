@@ -2,9 +2,18 @@
 Configuration settings for GMRIT Results Scraper
 """
 import os
+import sys
+
+def get_base_dir():
+    """Get the correct base directory for files (handles PyInstaller bundles)"""
+    if getattr(sys, 'frozen', False):
+        # Bundled executable
+        return os.path.dirname(sys.executable)
+    # Normal Python script
+    return os.path.dirname(os.path.abspath(__file__))
 
 # Directories
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = get_base_dir()
 OUTPUT_DIR = os.path.join(BASE_DIR, "gmrit_results_pdf")
 HTML_DIR = os.path.join(BASE_DIR, "html_pages")
 PDF_DIR = os.path.join(BASE_DIR, "pdfs")
